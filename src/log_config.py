@@ -17,6 +17,6 @@ log_config = {
         },
     },
     "loggers": {
-        "polygonio-news-sentiment-logger": {"handlers": ["default"], "level": "INFO"}
+        "polygonio-news-sentiment-data-logger": {"handlers": ["default"], "level": "INFO"}
     },
 }
