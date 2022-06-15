@@ -66,12 +66,16 @@ if __name__ == '__main__':
 
     # Call news API and get data based on max(timestamp)
     api_key = os.getenv("POLYGON_API_KEY")
-    # TODO: remove the limit when pushing to prod
-    next_url = f"https://api.polygon.io/v2/reference/news?published_utc.gt={max_published_utc}&limit=1000&apiKey={api_key}"
+    api_url = f"https://api.polygon.io/v2/reference/news?published_utc.gt={max_published_utc}&limit=1000&apiKey={api_key}"
     print(f"NEXT_URL: {next_url}")
     news = []
     count = 0
 
+    # Grab the initial payload from the API
+    resp = requests.get(next_url)
+    df_new = pd.json_normalize(resp.json()['results'], max_level=1)
+
+    # If there are more than 1000 ojbects returned
     while next_url:
         resp = requests.get(next_url)
         if resp.ok:
