@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 import requests
+import json
 
 import numpy as np
 import pandas as pd
@@ -35,23 +36,7 @@ def polygonio_max_time_stamp(df):
 
 # TODO: Query Polygon News API for new data (based on max(timestamp))
 def polygonio_query_news_api():
-    pass
-
-def query_sentiment_api():
-    sentiment_url = f"https://polygonio-news-sentiment-data-v2-d3zpexdhjq-uc.a.run.app/sentiment"
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json",
-    }
-    data = {
-        "headline": "this is a test of the emergency broadcast systme",
-    }
-
-    resp = requests.post(sentiment_url, headers=headers, data=json.dumps(data))
-
-    return df
-
-    
+    pass    
 
 if __name__ == '__main__':
 
@@ -116,13 +101,21 @@ if __name__ == '__main__':
             "accept": "application/json",
             "Content-Type": "application/json",
         }
-        data = {
-            "headline": "this is a test of the emergency broadcast systme",
-        }
-        resp = requests.post(sentiment_url, headers=headers, data=json.dumps(data))
-        
-        df['a'] = df['a'].map(lambda a: a / 2.)
-        result = [f(x) for x in df['col']]
+
+        for i in df_new.index:
+            #df.at[i, 'ifor'] = x
+            #print(df_new.iloc[i]["title"])
+            title = df_new.iloc[i]["title"]
+            data = ({ "headline": title})
+            resp = requests.post(sentiment_url, headers=headers, data=json.dumps(data))
+            #print(f"1: {resp.json()}")
+            #print(f"2: {resp.json()['Sentiment']}")
+            #print(f"3: {resp.json()['Sentiment'][0]}")
+            #print(f"4: {resp.json()['Sentiment'][0]['label']}")
+            #print(f"4: {resp.json()['Sentiment'][0]['score']}")
+
+            df_new.at[i, 'sentiment'] = resp.json()['Sentiment'][0]['label']
+            df_new.at[i, 'sentiment_score'] = resp.json()['Sentiment'][0]['score']
 
     else:
         # Create empty dataframe
