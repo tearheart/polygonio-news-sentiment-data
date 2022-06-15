@@ -37,7 +37,19 @@ def polygonio_max_time_stamp(df):
 def polygonio_query_news_api():
     pass
 
-# TODO: Update Dataframe
+def query_sentiment_api():
+    sentiment_url = f"https://polygonio-news-sentiment-data-v2-d3zpexdhjq-uc.a.run.app/sentiment"
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "headline": "this is a test of the emergency broadcast systme",
+    }
+
+    resp = requests.post(sentiment_url, headers=headers, data=json.dumps(data))
+
+    return df
 
     
 
@@ -48,11 +60,11 @@ if __name__ == '__main__':
     current_timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     gcs_backup_path = "gs://polygonio-news-sentiment-test/data/backup/polygonio_news_data_" + current_timestamp + ".pkl"
     df_columns = ["amp_url", "article_url", "author", "description", "id", "image_url", "keywords", "published_utc", "publisher.favicon_url", 
-                    "publisher.homepage_url", "publisher.logo_url", "publisher.name", "tickers", "title"]
+                    "publisher.homepage_url", "publisher.logo_url", "publisher.name", "sentiment", "sentiment_socre", "tickers", "title"]
 
     # Check if pickle file exists
-    # if exists - call max(timestamp)
-    # if not exists - max(timestamp) = previous day
+    # if exists: call max(timestamp)
+    # if not exists: max(timestamp) = previous day
     if fs.exists(gcs_path):
         # download it
         df_current = pd.read_pickle(gcs_path)
@@ -67,43 +79,56 @@ if __name__ == '__main__':
     # Call news API and get data based on max(timestamp)
     api_key = os.getenv("POLYGON_API_KEY")
     api_url = f"https://api.polygon.io/v2/reference/news?published_utc.gt={max_published_utc}&limit=1000&apiKey={api_key}"
-    print(f"NEXT_URL: {next_url}")
+    print(f"NEXT_URL: {api_url}")
     news = []
     count = 0
 
     # Grab the initial payload from the API
-    resp = requests.get(next_url)
-    df_new = pd.json_normalize(resp.json()['results'], max_level=1)
+    resp = requests.get(api_url)
+    if resp.ok and resp.json()["results"]:
+        count += resp.json()["count"]
+        print(f"If Count: {count}")
+        news += resp.json()["results"]
+        print(f"If News: {len(news)}\n\n")
 
-    # If there are more than 1000 ojbects returned
-    while next_url:
-        resp = requests.get(next_url)
-        if resp.ok:
-            news += resp.json()
-            if "count" in resp.json().keys():
+        while "next_url" in resp.json().keys():
+            api_url = resp.json()["next_url"] + f"&apiKey={api_key}"
+            resp = requests.get(api_url)
+            if resp.ok and resp.json()["results"]:
+                news += resp.json()["results"]
+                print(f"While News: {len(news)}")
                 count += resp.json()["count"]
-            print(count)
-            if "next_url" in resp.json().keys():
-                next_url = resp.json()["next_url"] + f"&apiKey={api_key}"
-                print(next_url)
+                print(f"While Count: {count}")
+                print(api_url)
             else:
-                #df_new = pd.DataFrame(resp.json()['results'])\
-                df_new = pd.json_normalize(resp.json()['results'], max_level=1)
-                print(df_new.columns)
-                print(df_new.head())
-                df_new.to_csv("./testing.csv")
-                print(f"NEW COLUMNS: {df_new.columns}")
-                # Process and clean data
-                df_new['sentiment'] = np.nan
-                df_new['sentiment_score'] = np.nan
-                df_new.fillna('', inplace=True)
+                print("BREAK")
                 break
-        else:
-            # Create empty df_new
-            df_new = pd.DataFrame(columns=df_columns)
-            print(f"Request failed with {resp.status_code}")
-            break
-    
+
+        # Create dataframe will full payload
+        df_new = pd.json_normalize(news, max_level=1)
+        # Process and clean data
+        df_new['sentiment'] = np.nan
+        df_new['sentiment_score'] = np.nan
+        df_new.fillna('', inplace=True)
+
+        sentiment_url = f"https://polygonio-news-sentiment-data-v2-d3zpexdhjq-uc.a.run.app/sentiment"
+        headers = {
+            "accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "headline": "this is a test of the emergency broadcast systme",
+        }
+        resp = requests.post(sentiment_url, headers=headers, data=json.dumps(data))
+        
+        df['a'] = df['a'].map(lambda a: a / 2.)
+        result = [f(x) for x in df['col']]
+
+    else:
+        # Create empty dataframe
+        df_new = pd.DataFrame(columns=df_columns)
+        print(f"Request failed with {resp.status_code}")
+  
     # Call model server
     # Update each new article
     # Add new data to existing data
@@ -116,7 +141,6 @@ if __name__ == '__main__':
         print("Not able to back up news data")
 
     # Write data to GCS
-    df_updated.to_pickle("./test_pickle.pkl")
     df_updated.to_pickle(gcs_path)
 
     print(f"CURRENT: {len(df_current.index)}")
@@ -125,4 +149,7 @@ if __name__ == '__main__':
     print(f"NEW COLUMNS: {df_new.columns}")
     print(f"UPDATED: {len(df_updated.index)}")
     print(f"UPDATED COLUMNS: {df_updated.columns}")
-    #print(df_updated.head())
+
+    df_current.to_csv("./df_current.csv")
+    df_new.to_csv("./df_new.csv")
+    df_updated.to_csv("./df_updated.csv")
