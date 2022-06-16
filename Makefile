@@ -1,10 +1,13 @@
-export IMAGE_NAME=polygonio-news-sentiment-repo-model
+export IMAGE_NAME=polygonio-news-sentiment-repo-data
 
 local-build:
-	docker build . -t polygonio-news-sentiment-repo/$(IMAGE_NAME)
+	docker build --no-cache -t polygonio-news-sentiment-repo/$(IMAGE_NAME) .
 
 local-run:
-	docker run -d --rm -p 8000:8000 polygonio-news-sentiment-repo/$(IMAGE_NAME)
+	docker run --rm polygonio-news-sentiment-repo/$(IMAGE_NAME)
+
+local-run-up:
+	docker run -e POLYGON_API_KEY=$(POLYGON_API_KEY) --entrypoint bash -itd polygonio-news-sentiment-repo/$(IMAGE_NAME)
 
 gcp-auth:
 #	gcloud components update
@@ -13,14 +16,14 @@ gcp-auth:
 	gcloud auth configure-docker us-central1-docker.pkg.dev
 
 gcp-build:
-	docker build -t "us-central1-docker.pkg.dev/mlops-3/polygonio-news-sentiment-repo/polygonio-testing-lcd" .
+	docker build -t "us-central1-docker.pkg.dev/mlops-3/polygonio-news-sentiment-repo/$(IMAGE_NAME)" .
 
 gcp-push:
-	docker push us-central1-docker.pkg.dev/mlops-3/polygonio-news-sentiment-repo/polygonio-testing-lcd
+	docker push us-central1-docker.pkg.dev/mlops-3/polygonio-news-sentiment-repo/$(IMAGE_NAME)
 
 gcp-run:
 	gcloud run deploy polygonio-news-sentiment-data-v2 \
-  	--image us-central1-docker.pkg.dev/mlops-3/polygonio-news-sentiment-repo/polygonio-testing-lcd \
+  	--image us-central1-docker.pkg.dev/mlops-3/polygonio-news-sentiment-repo/$(IMAGE_NAME) \
   	--platform managed \
   	--region us-central1 \
   	--project mlops-3

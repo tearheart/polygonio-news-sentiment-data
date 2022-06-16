@@ -10,36 +10,36 @@ import numpy as np
 import pandas as pd
 
 from datetime import datetime, timedelta
+from logging.config import dictConfig
 
-#from logging.config import dictConfig
-#from src.log_config import log_config
+log_config = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(levelprefix)s %(asctime)s %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
 
-#dictConfig(log_config)
-#logger = logging.getLogger("polygonio-news-sentiment-model-data-logger")
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",
+        },
+    },
+    "loggers": {
+        "polygonio-news-sentiment-data-logger": {"handlers": ["default"], "level": "INFO"}
+    },
+}
+
+dictConfig(log_config)
+logger = logging.getLogger("polygonio-news-sentiment-model-data-logger")
 
 
-# TODO: Load Polygon News dataframe from GCS
-def gcs_read_dataframe(gcs_path):
-    pass
-
-# TODO: Write Dataframe back to GCS
-def gcs_write_dataframe(gcs_path):
-    pass
-
-# TODO: Write current dataframe to backup bucket/folder
-def gcs_backup_dataframe(gcs_path):
-    pass
-
-# TODO: Query for max(timestamp)
-def polygonio_max_time_stamp(df):
-    pass
-
-# TODO: Query Polygon News API for new data (based on max(timestamp))
-def polygonio_query_news_api():
-    pass    
-
-if __name__ == '__main__':
-
+def main():
     fs = gcsfs.GCSFileSystem(project='mlops-3')
     gcs_path = "gs://polygonio-news-sentiment-test/data/polygonio_news_data.pkl"
     current_timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
@@ -70,6 +70,7 @@ if __name__ == '__main__':
 
     # Grab the initial payload from the API
     resp = requests.get(api_url)
+    print(resp)
     if resp.ok and resp.json()["results"]:
         count += resp.json()["count"]
         print(f"If Count: {count}")
@@ -146,3 +147,6 @@ if __name__ == '__main__':
     df_current.to_csv("./df_current.csv")
     df_new.to_csv("./df_new.csv")
     df_updated.to_csv("./df_updated.csv")
+
+if __name__ == '__main__':
+    main()
