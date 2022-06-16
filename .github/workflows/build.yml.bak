@@ -12,7 +12,6 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}"
   ARTIFACT_REPO: polygonio-news-sentiment-repo
   GCP_ZONE: us-central1
-  DEPLOYMENT_NAME: polygonio-news-sentiment-data
   IMAGE_NAME: polygonio-news-sentiment-data
 
 jobs:
@@ -36,5 +35,15 @@ jobs:
     - run: |-
         gcloud --quiet auth configure-docker $GCP_ZONE-docker.pkg.dev
 
+    # Build the Docker image
+    - name: Build
+      run: |-
+        echo "${{secrets.GOOGLE_APPLICATION_CREDENTIALS }}" > ./google.json
+        docker build \
+          --tag "$GCP_ZONE-docker.pkg.dev$PROJECT_ID/$ARTIFACT_REPO/$IMAGE_NAME:$GITHUB_SHA" \
+          .
 
-    
+    # Push image to Google Container Registry
+    - name: Push
+      run: |-
+        docker push $GCP_ZONE-docker.pkg.dev/$PROJECT_ID/$ARTIFACT_REPO/$IMAGE_NAME:$GITHUB_SHA

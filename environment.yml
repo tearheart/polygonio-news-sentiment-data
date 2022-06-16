@@ -10,7 +10,8 @@ dependencies:
 - pip:
   - pandas
   - requests
-  - gcsfs 
+  - gcsfs
+  - google-cloud-firestore
   - transformers
   - datasets
   - huggingface_hub
