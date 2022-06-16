@@ -26,4 +26,4 @@ gcp-run:
   	--image us-central1-docker.pkg.dev/mlops-3/polygonio-news-sentiment-repo/$(IMAGE_NAME) \
   	--platform managed \
   	--region us-central1 \
-  	--project mlops-3
+  	--project mlops-3 
